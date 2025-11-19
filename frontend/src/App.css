@@ -123,30 +123,14 @@
   min-width: 400px;
 }
 
-.info-section {
-  background-color: #252526;
-  border-radius: 6px;
-  padding: 15px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+/* NEW: Grid for PC/Log and Registers */
+.top-right-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  flex-shrink: 0;
 }
 
-.pc-display {
-  text-align: center;
-}
-
-.pc-display h3 {
-  font-size: 16px;
-  color: #9cdcfe;
-  margin-bottom: 10px;
-  font-weight: 500;
-}
-
-.pc-value {
-  font-size: 24px;
-  color: #4ec9b0;
-  font-weight: 600;
-  letter-spacing: 1px;
-}
 
 /* Scrollbar styling */
 .right-panel::-webkit-scrollbar {
@@ -182,6 +166,12 @@
 
   .left-panel {
     min-height: 400px;
+  }
+
+  /* Stack log and registers vertically */
+  .top-right-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 }
 

@@ -33,16 +33,32 @@
   user-select: none;
   border-right: 1px solid #3c3c3c;
   min-width: 50px;
+  overflow-y: hidden; /* Hide scrollbar here, scroll is synced by JS */
+  flex-shrink: 0;
 }
 
-.line-numbers pre {
+.line-numbers-pre {
   font-family: 'Consolas', 'Courier New', monospace;
   font-size: 14px;
   line-height: 1.5;
   margin: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-.code-editor {
+.line-number-item {
+    display: block;
+    color: #858585;
+}
+
+.active-line-number {
+    color: #ffff00; /* Yellow highlight for PC indicator */
+    font-weight: bold;
+    background-color: #3c3c3c; /* Match code highlight background */
+}
+
+/* Replaced textarea with a contentEditable div structure for accurate line highlighting */
+.code-display {
   flex: 1;
   background-color: #1e1e1e;
   color: #d4d4d4;
@@ -54,28 +70,42 @@
   line-height: 1.5;
   resize: none;
   overflow-y: auto;
-  white-space: pre;
+  white-space: pre-wrap; /* Use pre-wrap to keep spaces and wrap long lines */
   overflow-wrap: normal;
+  caret-color: white; /* Make the cursor visible */
 }
 
-.code-editor::placeholder {
-  color: #6a6a6a;
+.code-display:empty::before {
+    content: "Enter RISC-V assembly code here...";
+    color: #6a6a6a;
+    display: block;
 }
 
-.code-editor::-webkit-scrollbar {
+.code-line {
+  /* Ensure consistent line height */
+  line-height: 1.5;
+  min-height: 21px; /* Ensure line height is respected even if empty */
+}
+
+.code-line.active-instruction {
+  background-color: #3c3c3c; /* Darker background for active instruction */
+  color: #ffffff; /* Brighter text for active instruction */
+}
+
+.code-display::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 
-.code-editor::-webkit-scrollbar-track {
+.code-display::-webkit-scrollbar-track {
   background: #1e1e1e;
 }
 
-.code-editor::-webkit-scrollbar-thumb {
+.code-display::-webkit-scrollbar-thumb {
   background: #3c3c3c;
   border-radius: 5px;
 }
 
-.code-editor::-webkit-scrollbar-thumb:hover {
+.code-display::-webkit-scrollbar-thumb:hover {
   background: #505050;
 }

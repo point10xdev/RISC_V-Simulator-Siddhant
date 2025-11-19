@@ -1,40 +1,109 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './App.css';
 import Editor from './components/Editor';
 import RegisterDisplay from './components/RegisterDisplay';
 import MemoryDisplay from './components/MemoryDisplay';
+import ExecutionLog from './components/ExecutionLog'; // NEW component import
 import axios from 'axios';
 
 function App() {
-  const [code, setCode] = useState(`# RISC-V Assembly Example
+  const defaultCode = `# RISC-V Assembly Example
 # Add two numbers and store in memory
 ADDI x1, x0, 10    # x1 = 10
 ADDI x2, x0, 20    # x2 = 20
 ADD x3, x1, x2     # x3 = x1 + x2 = 30
 SW x3, x0, 100     # Store x3 at memory[100]
-HLT                # Halt execution`);
-
+HLT                # Halt execution`;
+  
+  const [code, setCode] = useState(defaultCode);
   const [registers, setRegisters] = useState(new Array(32).fill(0));
   const [memory, setMemory] = useState([]);
   const [pc, setPc] = useState(0);
   const [halted, setHalted] = useState(false);
   const [error, setError] = useState('');
   const [isRunning, setIsRunning] = useState(false);
+  const [instructions, setInstructions] = useState([]); // NEW: To hold parsed instructions for display
+  const [log, setLog] = useState([]); // NEW: Execution log
 
   const API_BASE_URL = 'http://localhost:5000/api/simulator';
+
+  // Helper to fetch instructions for display (Run once on code change/mount)
+  const fetchInstructionsForDisplay = useCallback((currentCode) => {
+    // This frontend parsing allows us to map source code lines to instruction indices for highlighting.
+    // NOTE: This simple version relies on heuristic cleaning. A robust solution would call a backend 'parse-only' endpoint.
+    const rawLines = currentCode.split('\n');
+    const displayInstructions = [];
+    let instructionIndex = 0;
+    for (let i = 0; i < rawLines.length; i++) {
+        const line = rawLines[i].trim();
+        // Simple heuristic to detect if a line contains executable code
+        const hasExecutable = line && !line.startsWith('#') && !line.startsWith('.') && !line.endsWith(':');
+        
+        if (hasExecutable || line.includes(':')) {
+            // Further cleaning to remove comments after instruction
+            const cleanLine = line.split('#')[0].trim();
+            displayInstructions.push({ 
+              lineNum: i + 1, 
+              text: cleanLine, 
+              index: instructionIndex 
+            });
+            // Only increment instruction index for executable lines (excluding label-only lines)
+            if (hasExecutable || (line.includes(':') && cleanLine.split(':').length > 1 && cleanLine.split(':')[1].trim() !== '')) {
+                instructionIndex++;
+            } else if (line.endsWith(':') && line.split(':')[0].trim() !== '') {
+                // If the line contains a label and nothing else, it's just a label on the original line.
+                // We'll increment the index only for lines that result in an actual instruction.
+                // Since our heuristic here is basic, we rely on the implicit logic that the backend parser
+                // assigns instruction indices based on lines that result in code.
+                // In this simplified client-side tracking, we'll keep the instruction index consistent
+                // by relying on the backend to tell us the current PC.
+            }
+        }
+    }
+    setInstructions(displayInstructions.filter(inst => inst.text !== ''));
+  }, []);
+
+  useEffect(() => {
+    fetchInstructionsForDisplay(code);
+  }, [code, fetchInstructionsForDisplay]);
+
+
+  // Update state from a successful API response
+  const updateState = (data, isReset = false) => {
+    const newState = data.state;
+    setRegisters(newState.registers);
+    setMemory(newState.memory);
+    setPc(newState.pc);
+    setHalted(newState.halted);
+
+    // Find the executed instruction based on the current PC value
+    const executedInstruction = instructions.find(inst => inst.index === newState.pc - 1);
+    
+    // Update log
+    if (isReset) {
+      setLog([{ pc: 0, instruction: 'Simulator Reset', type: 'RESET' }]);
+    } else if (newState.halted) {
+      setLog(prev => [{ pc: newState.pc, instruction: executedInstruction?.text || 'HLT', type: 'HALT' }, ...prev.slice(0, 9)]);
+    } else if (executedInstruction) {
+      setLog(prev => [{ pc: executedInstruction.index, instruction: executedInstruction.text, type: 'EXECUTE' }, ...prev.slice(0, 9)]);
+    }
+  };
+
 
   // Execute all instructions at once
   const handleRun = async () => {
     setError('');
     setIsRunning(true);
+    setLog(prev => [{ pc: pc, instruction: 'Running entire program...', type: 'RUN' }, ...prev.slice(0, 9)]);
     try {
       const response = await axios.post(`${API_BASE_URL}/execute`, { code });
       
       if (response.data.success) {
-        setRegisters(response.data.state.registers);
-        setMemory(response.data.state.memory);
+        // The PC returned from a successful RUN is the instruction index *after* HLT, or the instruction length.
+        // We artificially set the PC to the halted index to show the final state, and rely on `updateState` to log the HLT.
         setPc(response.data.state.pc);
-        setHalted(response.data.state.halted);
+        setHalted(response.data.state.halted); 
+        updateState(response.data);
       } else {
         setError(response.data.error || 'Execution failed');
       }
@@ -48,15 +117,20 @@ HLT                # Halt execution`);
   // Step through one instruction at a time
   const handleStep = async () => {
     setError('');
+    if (halted) return;
+
+    // Prepare currentState: need to convert the simplified memory array back to the expected format
+    const memoryMap = memory.reduce((acc, item) => {
+      acc[item.address] = item.value;
+      return acc;
+    }, new Array(1024).fill(0));
+
     try {
       const currentState = {
         registers,
-        memory: memory.reduce((acc, item) => {
-          acc[item.address] = item.value;
-          return acc;
-        }, new Array(1024).fill(0)),
+        memory: memoryMap,
         pc,
-        instructions: [],
+        // Instructions array is not passed back, relying on code for backend re-parse
         halted
       };
 
@@ -66,10 +140,7 @@ HLT                # Halt execution`);
       });
       
       if (response.data.success) {
-        setRegisters(response.data.state.registers);
-        setMemory(response.data.state.memory);
-        setPc(response.data.state.pc);
-        setHalted(response.data.state.halted);
+        updateState(response.data);
       } else {
         setError(response.data.error || 'Step execution failed');
       }
@@ -85,10 +156,8 @@ HLT                # Halt execution`);
       const response = await axios.post(`${API_BASE_URL}/reset`);
       
       if (response.data.success) {
-        setRegisters(response.data.state.registers);
-        setMemory(response.data.state.memory);
-        setPc(response.data.state.pc);
-        setHalted(response.data.state.halted);
+        updateState(response.data, true);
+        fetchInstructionsForDisplay(code); // Re-parse for display to ensure indices are correct
       }
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Failed to reset simulator');
@@ -105,7 +174,7 @@ HLT                # Halt execution`);
             disabled={isRunning || halted}
             className="btn btn-run"
           >
-            {isRunning ? 'Running...' : 'Run'}
+            {isRunning ? 'Running...' : 'Run All'}
           </button>
           <button 
             onClick={handleStep} 
@@ -138,18 +207,23 @@ HLT                # Halt execution`);
 
       <div className="main-container">
         <div className="left-panel">
-          <Editor code={code} setCode={setCode} />
+          {/* Pass instructions and pc to Editor for highlighting */}
+          <Editor 
+            code={code} 
+            setCode={setCode} 
+            instructions={instructions}
+            pc={pc}
+          />
         </div>
 
         <div className="right-panel">
-          <div className="info-section">
-            <div className="pc-display">
-              <h3>Program Counter</h3>
-              <div className="pc-value">PC = {pc}</div>
-            </div>
+          
+          {/* NEW: Grid for PC/Log and Registers */}
+          <div className="top-right-grid">
+            <ExecutionLog log={log} pc={pc} halted={halted} />
+            <RegisterDisplay registers={registers} />
           </div>
-
-          <RegisterDisplay registers={registers} />
+          
           <MemoryDisplay memory={memory} />
         </div>
       </div>

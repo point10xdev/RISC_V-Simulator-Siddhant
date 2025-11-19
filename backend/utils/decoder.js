@@ -1,385 +1,345 @@
 /**
- * decoder.js
- * Decodes parsed instruction objects into execution-ready format
- * Handles opcode identification and operand extraction for all RISC-V instruction formats
+ * parser.js
+ * Parses RISC-V assembly code into structured instruction objects
  */
 
-class Decoder {
+const { instructionFormats } = require('./isa');
+const { parseRegister, parseImmediate } = require('./helpers');
+
+class Parser {
   constructor() {
-    // Opcode definitions with funct3 and funct7 for precise identification
-    this.opcodes = {
-      // R-Format instructions
-      'ADD': { type: 'R', funct3: 0b000, funct7: 0b0000000 },
-      'SUB': { type: 'R', funct3: 0b000, funct7: 0b0100000 },
-      'SLL': { type: 'R', funct3: 0b001, funct7: 0b0000000 },
-      'SLT': { type: 'R', funct3: 0b010, funct7: 0b0000000 },
-      'SLTU': { type: 'R', funct3: 0b011, funct7: 0b0000000 },
-      'XOR': { type: 'R', funct3: 0b100, funct7: 0b0000000 },
-      'SRL': { type: 'R', funct3: 0b101, funct7: 0b0000000 },
-      'SRA': { type: 'R', funct3: 0b101, funct7: 0b0100000 },
-      'OR': { type: 'R', funct3: 0b110, funct7: 0b0000000 },
-      'AND': { type: 'R', funct3: 0b111, funct7: 0b0000000 },
-      
-      // I-Format (Arithmetic/Logical)
-      'ADDI': { type: 'I', funct3: 0b000 },
-      'SLTI': { type: 'I', funct3: 0b010 },
-      'SLTIU': { type: 'I', funct3: 0b011 },
-      'XORI': { type: 'I', funct3: 0b100 },
-      'ORI': { type: 'I', funct3: 0b110 },
-      'ANDI': { type: 'I', funct3: 0b111 },
-      'SLLI': { type: 'I', funct3: 0b001, funct7: 0b0000000 },
-      'SRLI': { type: 'I', funct3: 0b101, funct7: 0b0000000 },
-      'SRAI': { type: 'I', funct3: 0b101, funct7: 0b0100000 },
-      
-      // I-Format (Load)
-      'LB': { type: 'IL', funct3: 0b000 },
-      'LH': { type: 'IL', funct3: 0b001 },
-      'LW': { type: 'IL', funct3: 0b010 },
-      'LBU': { type: 'IL', funct3: 0b100 },
-      'LHU': { type: 'IL', funct3: 0b101 },
-      
-      // S-Format (Store)
-      'SB': { type: 'S', funct3: 0b000 },
-      'SH': { type: 'S', funct3: 0b001 },
-      'SW': { type: 'S', funct3: 0b010 },
-      
-      // SB-Format (Branch)
-      'BEQ': { type: 'SB', funct3: 0b000 },
-      'BNE': { type: 'SB', funct3: 0b001 },
-      'BLT': { type: 'SB', funct3: 0b100 },
-      'BGE': { type: 'SB', funct3: 0b101 },
-      'BLTU': { type: 'SB', funct3: 0b110 },
-      'BGEU': { type: 'SB', funct3: 0b111 },
-      
-      // UJ-Format (Jump)
-      'JAL': { type: 'UJ' },
-      'JALR': { type: 'JALR', funct3: 0b000 },
-      
-      // U-Format
-      'LUI': { type: 'U' },
-      'AUIPC': { type: 'U' },
-      
-      // Special
-      'HLT': { type: 'HLT' }
-    };
+    this.instructionFormats = instructionFormats;
+    this.labels = {};
   }
 
   /**
-   * Decode a parsed instruction into execution format
-   * @param {Object} instruction - Parsed instruction object
-   * @returns {Object} Decoded instruction with all fields ready for execution
+   * Parse assembly code into instruction objects
+   * @param {string} code - Assembly code
+   * @returns {Array} Array of parsed instruction objects
    */
-  decode(instruction) {
-    if (!instruction || !instruction.opcode) {
-      throw new Error('Invalid instruction: missing opcode');
-    }
-
-    const opcode = instruction.opcode.toUpperCase();
+  parse(code) {
+    const lines = code.split('\n');
+    const instructions = [];
+    this.labels = {};
     
-    if (!this.opcodes[opcode]) {
-      throw new Error(`Unknown opcode: ${opcode}`);
-    }
-
-    const opcodeInfo = this.opcodes[opcode];
-    
-    // Create base decoded instruction
-    const decoded = {
-      opcode: opcode,
-      type: opcodeInfo.type,
-      format: instruction.format,
-      index: instruction.index,
-      lineNum: instruction.lineNum,
-      original: instruction.original
-    };
-
-    // Decode based on instruction type
-    switch (opcodeInfo.type) {
-      case 'R':
-        return this.decodeRFormat(instruction, decoded);
-      case 'I':
-        return this.decodeIFormat(instruction, decoded);
-      case 'IL':
-        return this.decodeLoadFormat(instruction, decoded);
-      case 'S':
-        return this.decodeStoreFormat(instruction, decoded);
-      case 'SB':
-        return this.decodeBranchFormat(instruction, decoded);
-      case 'UJ':
-        return this.decodeJALFormat(instruction, decoded);
-      case 'JALR':
-        return this.decodeJALRFormat(instruction, decoded);
-      case 'U':
-        return this.decodeUFormat(instruction, decoded);
-      case 'HLT':
-        return decoded;
-      default:
-        throw new Error(`Unknown instruction type: ${opcodeInfo.type}`);
-    }
-  }
-
-  /**
-   * Decode R-Format instruction
-   * Format: opcode rd, rs1, rs2
-   */
-  decodeRFormat(instruction, decoded) {
-    if (instruction.rd === undefined || instruction.rs1 === undefined || instruction.rs2 === undefined) {
-      throw new Error(`${instruction.opcode}: missing operands`);
-    }
-
-    decoded.rd = instruction.rd;
-    decoded.rs1 = instruction.rs1;
-    decoded.rs2 = instruction.rs2;
-    
-    // Validate register numbers
-    this.validateRegister(decoded.rd, 'rd');
-    this.validateRegister(decoded.rs1, 'rs1');
-    this.validateRegister(decoded.rs2, 'rs2');
-
-    return decoded;
-  }
-
-  /**
-   * Decode I-Format instruction (Arithmetic/Logical)
-   * Format: opcode rd, rs1, imm
-   */
-  decodeIFormat(instruction, decoded) {
-    if (instruction.rd === undefined || instruction.rs1 === undefined || instruction.imm === undefined) {
-      throw new Error(`${instruction.opcode}: missing operands`);
-    }
-
-    decoded.rd = instruction.rd;
-    decoded.rs1 = instruction.rs1;
-    decoded.imm = this.signExtend(instruction.imm, 12);
-    
-    // For shift instructions, immediate is only 5 bits (shamt)
-    if (['SLLI', 'SRLI', 'SRAI'].includes(instruction.opcode)) {
-      if (instruction.imm < 0 || instruction.imm > 31) {
-        throw new Error(`${instruction.opcode}: shift amount must be 0-31`);
+    // First pass: extract labels
+    let instructionIndex = 0;
+    for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+      const line = this.cleanLine(lines[lineNum]);
+      if (!line) continue;
+      
+      // Check for label
+      if (line.includes(':')) {
+        const labelMatch = line.match(/^(\w+):\s*(.*)/);
+        if (labelMatch) {
+          const labelName = labelMatch[1];
+          this.labels[labelName] = instructionIndex;
+          const restOfLine = labelMatch[2].trim();
+          if (restOfLine) {
+            // Instruction on same line as label
+            lines[lineNum] = restOfLine;
+          } else {
+            continue; // Label only, no instruction
+          }
+        }
       }
-      decoded.shamt = instruction.imm;
+      instructionIndex++;
     }
-
-    this.validateRegister(decoded.rd, 'rd');
-    this.validateRegister(decoded.rs1, 'rs1');
-
-    return decoded;
-  }
-
-  /**
-   * Decode Load Format instruction
-   * Format: opcode rd, imm(rs1)
-   */
-  decodeLoadFormat(instruction, decoded) {
-    if (instruction.rd === undefined || instruction.rs1 === undefined || instruction.imm === undefined) {
-      throw new Error(`${instruction.opcode}: missing operands`);
-    }
-
-    decoded.rd = instruction.rd;
-    decoded.rs1 = instruction.rs1;
-    decoded.imm = this.signExtend(instruction.imm, 12);
-
-    this.validateRegister(decoded.rd, 'rd');
-    this.validateRegister(decoded.rs1, 'rs1');
-
-    return decoded;
-  }
-
-  /**
-   * Decode Store Format instruction
-   * Format: opcode rs2, imm(rs1)
-   */
-  decodeStoreFormat(instruction, decoded) {
-    if (instruction.rs1 === undefined || instruction.rs2 === undefined || instruction.imm === undefined) {
-      throw new Error(`${instruction.opcode}: missing operands`);
-    }
-
-    decoded.rs1 = instruction.rs1;
-    decoded.rs2 = instruction.rs2;
-    decoded.imm = this.signExtend(instruction.imm, 12);
-
-    this.validateRegister(decoded.rs1, 'rs1');
-    this.validateRegister(decoded.rs2, 'rs2');
-
-    return decoded;
-  }
-
-  /**
-   * Decode Branch Format instruction
-   * Format: opcode rs1, rs2, offset
-   */
-  decodeBranchFormat(instruction, decoded) {
-    if (instruction.rs1 === undefined || instruction.rs2 === undefined || instruction.imm === undefined) {
-      throw new Error(`${instruction.opcode}: missing operands`);
-    }
-
-    decoded.rs1 = instruction.rs1;
-    decoded.rs2 = instruction.rs2;
-    decoded.imm = this.signExtend(instruction.imm, 13);
     
-    if (instruction.label) {
-      decoded.label = instruction.label;
+    // Second pass: parse instructions
+    instructionIndex = 0;
+    for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+      const line = this.cleanLine(lines[lineNum]);
+      if (!line) continue;
+      
+      // Skip label-only lines
+      if (line.match(/^\w+:\s*$/)) continue;
+      
+      // Remove label if present
+      let instructionLine = line;
+      if (line.includes(':')) {
+        const parts = line.split(':');
+        instructionLine = parts[1].trim();
+        if (!instructionLine) continue;
+      }
+      
+      try {
+        const instruction = this.parseInstruction(instructionLine, instructionIndex, lineNum + 1);
+        instructions.push(instruction);
+        instructionIndex++;
+      } catch (error) {
+        throw new Error(`Line ${lineNum + 1}: ${error.message}`);
+      }
     }
-
-    // Branch offset must be even (aligned to 2-byte boundary)
-    if (decoded.imm % 2 !== 0) {
-      throw new Error(`${instruction.opcode}: branch offset must be even`);
-    }
-
-    this.validateRegister(decoded.rs1, 'rs1');
-    this.validateRegister(decoded.rs2, 'rs2');
-
-    return decoded;
-  }
-
-  /**
-   * Decode JAL Format instruction
-   * Format: JAL rd, offset
-   */
-  decodeJALFormat(instruction, decoded) {
-    if (instruction.rd === undefined || instruction.imm === undefined) {
-      throw new Error(`${instruction.opcode}: missing operands`);
-    }
-
-    decoded.rd = instruction.rd;
-    decoded.imm = this.signExtend(instruction.imm, 21);
     
-    if (instruction.label) {
-      decoded.label = instruction.label;
-    }
-
-    // Jump offset must be even (aligned to 2-byte boundary)
-    if (decoded.imm % 2 !== 0) {
-      throw new Error(`${instruction.opcode}: jump offset must be even`);
-    }
-
-    this.validateRegister(decoded.rd, 'rd');
-
-    return decoded;
+    return instructions;
   }
 
   /**
-   * Decode JALR Format instruction
-   * Format: JALR rd, rs1, offset
+   * Clean and normalize a line of code
+   * @param {string} line - Raw line
+   * @returns {string} Cleaned line
    */
-  decodeJALRFormat(instruction, decoded) {
-    if (instruction.rd === undefined || instruction.rs1 === undefined || instruction.imm === undefined) {
-      throw new Error(`${instruction.opcode}: missing operands`);
+  cleanLine(line) {
+    // Remove comments
+    const commentIndex = line.indexOf('#');
+    if (commentIndex !== -1) {
+      line = line.substring(0, commentIndex);
     }
-
-    decoded.rd = instruction.rd;
-    decoded.rs1 = instruction.rs1;
-    decoded.imm = this.signExtend(instruction.imm, 12);
-
-    this.validateRegister(decoded.rd, 'rd');
-    this.validateRegister(decoded.rs1, 'rs1');
-
-    return decoded;
-  }
-
-  /**
-   * Decode U-Format instruction
-   * Format: opcode rd, imm
-   */
-  decodeUFormat(instruction, decoded) {
-    if (instruction.rd === undefined || instruction.imm === undefined) {
-      throw new Error(`${instruction.opcode}: missing operands`);
-    }
-
-    decoded.rd = instruction.rd;
-    // U-format immediate is 20 bits, placed in upper 20 bits of 32-bit word
-    decoded.imm = (instruction.imm & 0xFFFFF) << 12;
-
-    this.validateRegister(decoded.rd, 'rd');
-
-    return decoded;
-  }
-
-  /**
-   * Validate register number
-   * @param {number} reg - Register number
-   * @param {string} name - Register name for error messages
-   */
-  validateRegister(reg, name) {
-    if (reg < 0 || reg > 31) {
-      throw new Error(`Invalid register ${name}: x${reg} (must be x0-x31)`);
-    }
-  }
-
-  /**
-   * Sign extend a value to 32 bits
-   * @param {number} value - Value to sign extend
-   * @param {number} bits - Number of bits in original value
-   * @returns {number} Sign-extended 32-bit value
-   */
-  signExtend(value, bits) {
-    // Create a mask for the sign bit
-    const signBit = 1 << (bits - 1);
     
-    // Check if sign bit is set
-    if (value & signBit) {
-      // Extend with 1s
-      const mask = (-1 << bits);
-      return value | mask;
-    } else {
-      // Extend with 0s (just mask to ensure correct size)
-      const mask = (1 << bits) - 1;
-      return value & mask;
-    }
+    // Trim whitespace
+    line = line.trim();
+    
+    return line;
   }
 
   /**
-   * Get human-readable description of decoded instruction
-   * @param {Object} decoded - Decoded instruction
-   * @returns {string} Description
+   * Parse a single instruction
+   * @param {string} line - Instruction line
+   * @param {number} index - Instruction index
+   * @param {number} lineNum - Line number in source
+   * @returns {Object} Parsed instruction object
    */
-  getDescription(decoded) {
-    const regName = (r) => `x${r}`;
+  parseInstruction(line, index, lineNum) {
+    // Split instruction into parts
+    const parts = line.split(/[\s,()]+/).filter(part => part.length > 0);
     
-    switch (decoded.type) {
+    if (parts.length === 0) {
+      throw new Error('Empty instruction');
+    }
+    
+    const opcode = parts[0].toUpperCase();
+    
+    if (!this.instructionFormats[opcode]) {
+      throw new Error(`Unknown instruction: ${opcode}`);
+    }
+    
+    const format = this.instructionFormats[opcode];
+    
+    const instruction = {
+      opcode,
+      format,
+      index,
+      lineNum,
+      original: line
+    };
+    
+    // Parse based on format
+    switch (format) {
       case 'R':
-        return `${decoded.opcode} ${regName(decoded.rd)}, ${regName(decoded.rs1)}, ${regName(decoded.rs2)}`;
-      
+        return this.parseRFormat(instruction, parts);
       case 'I':
+        return this.parseIFormat(instruction, parts);
       case 'IL':
-        if (decoded.shamt !== undefined) {
-          return `${decoded.opcode} ${regName(decoded.rd)}, ${regName(decoded.rs1)}, ${decoded.shamt}`;
-        }
-        return `${decoded.opcode} ${regName(decoded.rd)}, ${regName(decoded.rs1)}, ${decoded.imm}`;
-      
+        return this.parseLoadFormat(instruction, parts);
       case 'S':
-        return `${decoded.opcode} ${regName(decoded.rs2)}, ${decoded.imm}(${regName(decoded.rs1)})`;
-      
+        return this.parseStoreFormat(instruction, parts);
       case 'SB':
-        if (decoded.label) {
-          return `${decoded.opcode} ${regName(decoded.rs1)}, ${regName(decoded.rs2)}, ${decoded.label}`;
-        }
-        return `${decoded.opcode} ${regName(decoded.rs1)}, ${regName(decoded.rs2)}, ${decoded.imm}`;
-      
+        return this.parseBranchFormat(instruction, parts);
       case 'UJ':
-        if (decoded.label) {
-          return `${decoded.opcode} ${regName(decoded.rd)}, ${decoded.label}`;
-        }
-        return `${decoded.opcode} ${regName(decoded.rd)}, ${decoded.imm}`;
-      
+        return this.parseJALFormat(instruction, parts);
       case 'JALR':
-        return `${decoded.opcode} ${regName(decoded.rd)}, ${regName(decoded.rs1)}, ${decoded.imm}`;
-      
+        return this.parseJALRFormat(instruction, parts);
       case 'U':
-        return `${decoded.opcode} ${regName(decoded.rd)}, ${decoded.imm >> 12}`;
-      
+        return this.parseUFormat(instruction, parts);
       case 'HLT':
-        return 'HLT';
-      
+        return instruction;
       default:
-        return decoded.opcode;
+        throw new Error(`Unknown format: ${format}`);
     }
+  }
+
+  /**
+   * Parse R-Format instruction: ADD rd, rs1, rs2
+   */
+  parseRFormat(instruction, parts) {
+    if (parts.length !== 4) {
+      throw new Error(`${instruction.opcode} requires 3 operands (rd, rs1, rs2)`);
+    }
+    
+    instruction.rd = parseRegister(parts[1]);
+    instruction.rs1 = parseRegister(parts[2]);
+    instruction.rs2 = parseRegister(parts[3]);
+    
+    return instruction;
+  }
+
+  /**
+   * Parse I-Format instruction: ADDI rd, rs1, imm
+   */
+  parseIFormat(instruction, parts) {
+    if (parts.length !== 4) {
+      throw new Error(`${instruction.opcode} requires 3 operands (rd, rs1, imm)`);
+    }
+    
+    instruction.rd = parseRegister(parts[1]);
+    instruction.rs1 = parseRegister(parts[2]);
+    instruction.imm = parseImmediate(parts[3], 12);
+    
+    return instruction;
+  }
+
+  /**
+   * Parse Load Format instruction: LW rd, imm(rs1) or LW rd, rs1, imm
+   */
+  parseLoadFormat(instruction, parts) {
+    if (parts.length === 3) {
+      // Format: LW rd, imm(rs1) - parts will be: [LW, rd, imm, rs1] after split
+      throw new Error(`${instruction.opcode} requires format: rd, imm(rs1) or rd, rs1, imm`);
+    } else if (parts.length === 4) {
+      // Format: LW rd, rs1, imm
+      instruction.rd = parseRegister(parts[1]);
+      instruction.rs1 = parseRegister(parts[2]);
+      instruction.imm = parseImmediate(parts[3], 12);
+    } else if (parts.length === 5) {
+      // This happens when input is like: LW x1, 4(x2)
+      // After split by [\s,()]+ we get: [LW, x1, 4, x2, '']
+      instruction.rd = parseRegister(parts[1]);
+      instruction.imm = parseImmediate(parts[2], 12);
+      instruction.rs1 = parseRegister(parts[3]);
+    } else {
+      throw new Error(`${instruction.opcode} invalid format`);
+    }
+    
+    return instruction;
+  }
+
+  /**
+   * Parse Store Format instruction: SW rs2, imm(rs1) or SW rs2, rs1, imm
+   */
+  parseStoreFormat(instruction, parts) {
+    if (parts.length === 4) {
+      // Format: SW rs2, rs1, imm
+      instruction.rs2 = parseRegister(parts[1]);
+      instruction.rs1 = parseRegister(parts[2]);
+      instruction.imm = parseImmediate(parts[3], 12);
+    } else if (parts.length === 5) {
+      // Format: SW rs2, imm(rs1) - after split: [SW, rs2, imm, rs1, '']
+      instruction.rs2 = parseRegister(parts[1]);
+      instruction.imm = parseImmediate(parts[2], 12);
+      instruction.rs1 = parseRegister(parts[3]);
+    } else {
+      throw new Error(`${instruction.opcode} invalid format`);
+    }
+    
+    return instruction;
+  }
+
+  /**
+   * Parse Branch Format instruction: BEQ rs1, rs2, label/imm
+   */
+  parseBranchFormat(instruction, parts) {
+    if (parts.length !== 4) {
+      throw new Error(`${instruction.opcode} requires 3 operands (rs1, rs2, label/offset)`);
+    }
+    
+    instruction.rs1 = parseRegister(parts[1]);
+    instruction.rs2 = parseRegister(parts[2]);
+    
+    // Check if it's a label or immediate
+    if (this.labels.hasOwnProperty(parts[3])) {
+      instruction.label = parts[3];
+      // Offset is relative to *instruction index*, will be converted to bytes in decoder
+      instruction.imm = (this.labels[parts[3]] - instruction.index) * 4;
+    } else {
+      instruction.imm = parseImmediate(parts[3], 13);
+    }
+    
+    return instruction;
+  }
+
+  /**
+   * Parse JAL Format instruction: JAL rd, label/imm
+   */
+  parseJALFormat(instruction, parts) {
+    if (parts.length === 2) {
+      // JAL label (implicit rd = x1)
+      instruction.rd = 1;
+      if (this.labels.hasOwnProperty(parts[1])) {
+        instruction.label = parts[1];
+        instruction.imm = (this.labels[parts[1]] - instruction.index) * 4;
+      } else {
+        instruction.imm = parseImmediate(parts[1], 21);
+      }
+    } else if (parts.length === 3) {
+      // JAL rd, label
+      instruction.rd = parseRegister(parts[1]);
+      if (this.labels.hasOwnProperty(parts[2])) {
+        instruction.label = parts[2];
+        instruction.imm = (this.labels[parts[2]] - instruction.index) * 4;
+      } else {
+        instruction.imm = parseImmediate(parts[2], 21);
+      }
+    } else {
+      throw new Error(`${instruction.opcode} requires 1 or 2 operands`);
+    }
+    
+    return instruction;
+  }
+
+  /**
+   * Parse JALR Format instruction: JALR rd, rs1, imm
+   */
+  parseJALRFormat(instruction, parts) {
+    if (parts.length === 2) {
+      // JALR rs1 (implicit rd = x1, imm = 0)
+      instruction.rd = 1;
+      instruction.rs1 = parseRegister(parts[1]);
+      instruction.imm = 0;
+    } else if (parts.length === 3) {
+      // JALR rd, rs1 (implicit imm = 0)
+      instruction.rd = parseRegister(parts[1]);
+      instruction.rs1 = parseRegister(parts[2]);
+      instruction.imm = 0;
+    } else if (parts.length === 4) {
+      // JALR rd, rs1, imm
+      instruction.rd = parseRegister(parts[1]);
+      instruction.rs1 = parseRegister(parts[2]);
+      instruction.imm = parseImmediate(parts[3], 12);
+    } else {
+      throw new Error(`${instruction.opcode} invalid format`);
+    }
+    
+    return instruction;
+  }
+
+  /**
+   * Parse U-Format instruction: LUI rd, imm
+   */
+  parseUFormat(instruction, parts) {
+    if (parts.length !== 3) {
+      throw new Error(`${instruction.opcode} requires 2 operands (rd, imm)`);
+    }
+    
+    instruction.rd = parseRegister(parts[1]);
+    instruction.imm = parseImmediate(parts[2], 20);
+    
+    return instruction;
+  }
+
+  /**
+   * Clean and normalize a line of code
+   * @param {string} line - Raw line
+   * @returns {string} Cleaned line
+   */
+  cleanLine(line) {
+    // Remove comments
+    const commentIndex = line.indexOf('#');
+    if (commentIndex !== -1) {
+      line = line.substring(0, commentIndex);
+    }
+    
+    // Trim whitespace
+    line = line.trim();
+    
+    return line;
   }
 }
 
 module.exports = {
-  decode: (instruction) => {
-    const decoder = new Decoder();
-    return decoder.decode(instruction);
+  parse: (code) => {
+    const parser = new Parser();
+    return parser.parse(code);
   },
-  Decoder
+  Parser
 };
