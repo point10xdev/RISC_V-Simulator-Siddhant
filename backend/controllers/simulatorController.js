@@ -125,10 +125,12 @@ exports.stepExecution = (req, res) => {
       simulatorState.registers = currentState.registers;
       simulatorState.memory = currentState.memory; 
       simulatorState.pc = currentState.pc;
-      simulatorState.instructions = currentState.instructions;
+      // simulatorState.instructions = currentState.instructions; // Instructions array is omitted by frontend on step request.
       simulatorState.halted = currentState.halted;
     }
     
+    // Reparse only if instructions were not loaded from the internal cache or initial state
+    // This maintains the instruction list if it was already parsed in a previous call.
     if (!simulatorState.instructions.length) {
       simulatorState.instructions = parser.parse(code);
     }
