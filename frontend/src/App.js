@@ -3,7 +3,8 @@ import './App.css';
 import Editor from './components/Editor';
 import RegisterDisplay from './components/RegisterDisplay';
 import MemoryDisplay from './components/MemoryDisplay';
-import ExecutionLog from './components/ExecutionLog'; // NEW component import
+import ExecutionLog from './components/ExecutionLog';
+import AIPromptBox from './components/AIPromptBox'; 
 import axios from 'axios';
 
 function App() {
@@ -22,16 +23,16 @@ HLT                # Halt execution`;
   const [halted, setHalted] = useState(false);
   const [error, setError] = useState('');
   const [isRunning, setIsRunning] = useState(false);
-  const [instructions, setInstructions] = useState([]); // NEW: To hold parsed instructions for display
-  const [log, setLog] = useState([]); // NEW: Execution log
+  const [instructions, setInstructions] = useState([]);
+  const [log, setLog] = useState([]);
 
   const API_BASE_URL = 'http://localhost:5000/api/simulator';
 
   // Helper to fetch instructions for display (Run once on code change/mount)
   const fetchInstructionsForDisplay = useCallback((currentCode) => {
-    // This frontend parsing allows us to map source code lines to instruction indices for highlighting.
-    // NOTE: This simple version relies on heuristic cleaning. A robust solution would call a backend 'parse-only' endpoint.
-    const rawLines = currentCode.split('\n');
+    // FIX: Ensure currentCode is a string before attempting string methods
+    const safeCode = currentCode || ''; 
+    const rawLines = safeCode.split('\n');
     const displayInstructions = [];
     let instructionIndex = 0;
     for (let i = 0; i < rawLines.length; i++) {
@@ -48,15 +49,10 @@ HLT                # Halt execution`;
               index: instructionIndex 
             });
             // Only increment instruction index for executable lines (excluding label-only lines)
-            if (hasExecutable || (line.includes(':') && cleanLine.split(':').length > 1 && cleanLine.split(':')[1].trim() !== '')) {
+            if (hasExecutable || (line.includes(':') && cleanLine.split(':')[1].trim() !== '')) {
                 instructionIndex++;
             } else if (line.endsWith(':') && line.split(':')[0].trim() !== '') {
-                // If the line contains a label and nothing else, it's just a label on the original line.
-                // We'll increment the index only for lines that result in an actual instruction.
-                // Since our heuristic here is basic, we rely on the implicit logic that the backend parser
-                // assigns instruction indices based on lines that result in code.
-                // In this simplified client-side tracking, we'll keep the instruction index consistent
-                // by relying on the backend to tell us the current PC.
+                // Label only line - logic remains the same
             }
         }
     }
@@ -163,6 +159,39 @@ HLT                # Halt execution`;
       setError(err.response?.data?.error || err.message || 'Failed to reset simulator');
     }
   };
+  
+  // Handle assembly generation from AI prompt (calls backend API)
+  const handleAIGeneration = async (prompt) => {
+    setError(''); 
+
+    try {
+        const response = await axios.post(`${API_BASE_URL}/generate-assembly`, { 
+            prompt, 
+            currentCode: code 
+        });
+
+        if (response.data.success) {
+            const newAssembly = response.data.assembly || '';
+            
+            // 2. Append the generated assembly to the current code
+            setCode(prevCode => {
+                // FIX: Explicitly check and handle non-string values for prevCode
+                const safePrevCode = typeof prevCode === 'string' ? prevCode : '';
+                const trimmedCode = safePrevCode.trim();
+                const separator = trimmedCode === '' ? '' : '\n\n';
+                return `${trimmedCode}${separator}${newAssembly}`;
+            });
+            // 3. Reset simulator state
+            await handleReset();
+
+        } else {
+            setError(response.data.error || 'AI generation failed.');
+        }
+    } catch (err) {
+        setError(err.response?.data?.error || err.message || 'Failed to communicate with AI service');
+    }
+  };
+
 
   return (
     <div className="App">
@@ -213,6 +242,12 @@ HLT                # Halt execution`;
             setCode={setCode} 
             instructions={instructions}
             pc={pc}
+          />
+          {/* NEW: AI Prompt Box */}
+          <AIPromptBox 
+            onGenerate={handleAIGeneration} // Pass the handler to the child
+            currentCode={code}             // Pass current code for context
+            onError={setError}             // Pass the error setter
           />
         </div>
 

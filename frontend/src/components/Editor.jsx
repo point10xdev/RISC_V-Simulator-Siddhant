@@ -5,8 +5,10 @@ import './Editor.css';
 function Editor({ code, setCode, instructions = [], pc }) {
   const codeEditorRef = useRef(null);
 
-  // Split code into lines for individual rendering
-  const lines = code.split('\n');
+  // --- FIX: Ensure code is a string, preventing TypeError: Cannot read properties of undefined (reading 'split') ---
+  const safeCode = code || '';
+  const lines = safeCode.split('\n');
+  // -------------------------------------------------------------------------------------------------------------------
   
   // Create a map from source line number (1-based) to instruction index (0-based)
   const lineNumToInstructionIndex = {};

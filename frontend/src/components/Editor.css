@@ -2,20 +2,20 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: #1e1e1e;
+  background-color: #ffffff; /* White background */
   border-radius: 6px;
   overflow: hidden;
 }
 
 .editor-header {
-  background-color: #2d2d30;
+  background-color: #f0f0f0; /* Light Gray Header */
   padding: 12px 20px;
-  border-bottom: 1px solid #3c3c3c;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .editor-header h2 {
   font-size: 16px;
-  color: #cccccc;
+  color: #333333;
   font-weight: 500;
 }
 
@@ -26,14 +26,14 @@
 }
 
 .line-numbers {
-  background-color: #1e1e1e;
-  color: #858585;
+  background-color: #f7f7f7; /* Off-white for numbers */
+  color: #999999; /* Medium Gray Numbers */
   padding: 15px 10px;
   text-align: right;
   user-select: none;
-  border-right: 1px solid #3c3c3c;
+  border-right: 1px solid #e0e0e0;
   min-width: 50px;
-  overflow-y: hidden; /* Hide scrollbar here, scroll is synced by JS */
+  overflow-y: hidden; 
   flex-shrink: 0;
 }
 
@@ -48,20 +48,19 @@
 
 .line-number-item {
     display: block;
-    color: #858585;
+    color: #999999;
 }
 
 .active-line-number {
-    color: #ffff00; /* Yellow highlight for PC indicator */
+    color: #008080; /* Teal highlight for PC indicator */
     font-weight: bold;
-    background-color: #3c3c3c; /* Match code highlight background */
+    background-color: #e6f7f7; /* Very light teal background for active line number */
 }
 
-/* Replaced textarea with a contentEditable div structure for accurate line highlighting */
 .code-display {
   flex: 1;
-  background-color: #1e1e1e;
-  color: #d4d4d4;
+  background-color: #ffffff;
+  color: #333333; /* Dark Text */
   border: none;
   outline: none;
   padding: 15px;
@@ -70,42 +69,42 @@
   line-height: 1.5;
   resize: none;
   overflow-y: auto;
-  white-space: pre-wrap; /* Use pre-wrap to keep spaces and wrap long lines */
+  white-space: pre-wrap;
   overflow-wrap: normal;
-  caret-color: white; /* Make the cursor visible */
+  caret-color: #333333; /* Dark cursor */
 }
 
 .code-display:empty::before {
     content: "Enter RISC-V assembly code here...";
-    color: #6a6a6a;
+    color: #aaaaaa; /* Light placeholder */
     display: block;
 }
 
 .code-line {
-  /* Ensure consistent line height */
   line-height: 1.5;
-  min-height: 21px; /* Ensure line height is respected even if empty */
+  min-height: 21px; 
 }
 
 .code-line.active-instruction {
-  background-color: #3c3c3c; /* Darker background for active instruction */
-  color: #ffffff; /* Brighter text for active instruction */
+  background-color: #f0f0f0; /* Light Gray background for active instruction */
+  color: #333333;
 }
 
+/* Scrollbar styling for light theme */
 .code-display::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 
 .code-display::-webkit-scrollbar-track {
-  background: #1e1e1e;
+  background: #ffffff;
 }
 
 .code-display::-webkit-scrollbar-thumb {
-  background: #3c3c3c;
+  background: #cccccc;
   border-radius: 5px;
 }
 
 .code-display::-webkit-scrollbar-thumb:hover {
-  background: #505050;
+  background: #aaaaaa;
 }

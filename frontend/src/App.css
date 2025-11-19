@@ -4,27 +4,28 @@
   box-sizing: border-box;
 }
 
+/* Updated Colors: Light Theme Base */
 .App {
   width: 100%;
   min-height: 100vh;
-  background-color: #1e1e1e;
-  color: #d4d4d4;
+  background-color: #f7f7f7; /* Soft White Background */
+  color: #333333; /* Dark Text */
   font-family: 'Consolas', 'Courier New', monospace;
 }
 
 .app-header {
-  background-color: #252526;
+  background-color: #ffffff; /* White Header */
   padding: 15px 30px;
-  border-bottom: 2px solid #3c3c3c;
+  border-bottom: 1px solid #e0e0e0; /* Light border */
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .app-header h1 {
   font-size: 24px;
-  color: #ffffff;
+  color: #333333;
   font-weight: 600;
 }
 
@@ -49,37 +50,41 @@
   cursor: not-allowed;
 }
 
+/* Accent Color 1: Teal (Run) */
 .btn-run {
-  background-color: #0e639c;
+  background-color: #008080; 
   color: white;
 }
 
 .btn-run:hover:not(:disabled) {
-  background-color: #1177bb;
+  background-color: #009999;
 }
 
+/* Accent Color 2: Orange (Step) */
 .btn-step {
-  background-color: #16825d;
+  background-color: #ff8c00; 
   color: white;
 }
 
 .btn-step:hover:not(:disabled) {
-  background-color: #1a9d6f;
+  background-color: #ff9d26;
 }
 
+/* Neutral Reset Button */
 .btn-reset {
-  background-color: #c5c5c5;
-  color: #1e1e1e;
+  background-color: #cccccc;
+  color: #333333;
 }
 
 .btn-reset:hover:not(:disabled) {
-  background-color: #e0e0e0;
+  background-color: #bbbbbb;
 }
 
+/* Modern Error/Status Styling */
 .error-message {
-  background-color: #5a1d1d;
-  border: 1px solid #be1100;
-  color: #f48771;
+  background-color: #fff0f0; 
+  border: 1px solid #ff4d4d;
+  color: #cc0000;
   padding: 12px 20px;
   margin: 15px 30px;
   border-radius: 4px;
@@ -87,9 +92,9 @@
 }
 
 .status-message {
-  background-color: #1a3a1a;
-  border: 1px solid #4caf50;
-  color: #a5d6a7;
+  background-color: #f0fff0;
+  border: 1px solid #33cc33;
+  color: #008000;
   padding: 12px 20px;
   margin: 15px 30px;
   border-radius: 4px;
@@ -103,15 +108,16 @@
   gap: 20px;
 }
 
+/* Panels now have a white background with a subtle shadow */
 .left-panel {
   flex: 1;
   display: flex;
-  flex-direction: column;
+  flex-direction: column; 
   min-width: 400px;
-  background-color: #252526;
+  background-color: #ffffff; /* White Panel Background */
   border-radius: 6px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .right-panel {
@@ -123,7 +129,6 @@
   min-width: 400px;
 }
 
-/* NEW: Grid for PC/Log and Registers */
 .top-right-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -132,24 +137,78 @@
 }
 
 
-/* Scrollbar styling */
+/* Scrollbar styling for light theme */
 .right-panel::-webkit-scrollbar {
   width: 10px;
 }
 
 .right-panel::-webkit-scrollbar-track {
-  background: #1e1e1e;
+  background: #f0f0f0; /* Light track */
   border-radius: 5px;
 }
 
 .right-panel::-webkit-scrollbar-thumb {
-  background: #3c3c3c;
+  background: #cccccc; /* Neutral thumb */
   border-radius: 5px;
 }
 
 .right-panel::-webkit-scrollbar-thumb:hover {
-  background: #505050;
+  background: #aaaaaa;
 }
+
+/* --- AI Prompt Box Styling --- */
+
+.ai-prompt-box {
+  border-top: 1px solid #e0e0e0;
+  padding: 15px 20px;
+  background-color: #f7f7f7; /* Soft background to distinguish it */
+  flex-shrink: 0; /* Prevents shrinking */
+}
+
+.ai-prompt-box .prompt-header h3 {
+  font-size: 14px;
+  color: #333333;
+  margin-bottom: 10px;
+}
+
+.ai-prompt-box .prompt-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cccccc;
+  border-radius: 4px;
+  resize: none;
+  font-family: inherit;
+  font-size: 13px;
+  background-color: #ffffff;
+  color: #333333;
+  transition: border-color 0.2s ease;
+}
+
+.ai-prompt-box .prompt-input:focus {
+  border-color: #008080; /* Teal focus highlight */
+  outline: none;
+}
+
+.ai-prompt-box .btn-generate {
+  margin-top: 10px;
+  width: 100%;
+  background-color: #008080; /* Teal Button */
+  color: white;
+  padding: 10px;
+  font-weight: 600;
+}
+
+.ai-prompt-box .btn-generate:hover:not(:disabled) {
+  background-color: #009999;
+}
+
+.ai-disclaimer {
+  font-size: 10px;
+  color: #999999;
+  margin-top: 10px;
+  text-align: center;
+}
+
 
 /* Responsive design */
 @media (max-width: 1200px) {

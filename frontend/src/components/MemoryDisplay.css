@@ -1,14 +1,14 @@
 .memory-display {
-  background-color: #252526;
+  background-color: #ffffff;
   border-radius: 6px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .memory-header {
-  background-color: #2d2d30;
+  background-color: #f0f0f0;
   padding: 12px 20px;
-  border-bottom: 1px solid #3c3c3c;
+  border-bottom: 1px solid #e0e0e0;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -16,7 +16,7 @@
 
 .memory-header h2 {
   font-size: 16px;
-  color: #cccccc;
+  color: #333333;
   font-weight: 500;
 }
 
@@ -27,8 +27,8 @@
 
 .view-btn {
   padding: 6px 12px;
-  background-color: #3c3c3c;
-  color: #cccccc;
+  background-color: #cccccc; /* Neutral Button */
+  color: #333333;
   border: none;
   border-radius: 3px;
   font-size: 12px;
@@ -38,11 +38,11 @@
 }
 
 .view-btn:hover {
-  background-color: #505050;
+  background-color: #bbbbbb;
 }
 
 .view-btn.active {
-  background-color: #0e639c;
+  background-color: #008080; /* Teal Active */
   color: white;
 }
 
@@ -54,130 +54,7 @@
 .memory-empty {
   padding: 40px 20px;
   text-align: center;
-  color: #858585;
-}
-
-.memory-empty p {
-  font-size: 14px;
-}
-
-.memory-grid {
-  display: flex;
-  flex-direction: column;
-}
-
-.memory-grid-header {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  background-color: #2d2d30;
-  padding: 10px 20px;
-  font-weight: 600;
-  font-size: 13px;
-  color: #9cdcfe;
-  border-bottom: 1px solid #3c3c3c;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.memory-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  padding: 10px 20px;
-  border-bottom: 1px solid #2d2d30;
-  transition: background-color 0.2s ease;
-}
-
-.memory-row:hover {
-  background-color: #2d2d30;
-}
-
-.memory-address {
-  color: #4ec9b0;
-  font-family: 'Consolas', 'Courier New', monospace;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.memory-value {
-  color: #ce9178;
-  font-family: 'Consolas', 'Courier New', monospace;
-  font-size: 13px;
-}
-
-.memory-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.memory-content::-webkit-scrollbar-track {
-  background: #1e1e1e;
-}
-
-.memory-content::-webkit-scrollbar-thumb {
-  background: #3c3c3c;
-  border-radius: 4px;
-}
-
-.memory-content::-webkit-scrollbar-thumb:hover {
-  background: #505050;
-}
-.memory-display {
-  background-color: #252526;
-  border-radius: 6px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.memory-header {
-  background-color: #2d2d30;
-  padding: 12px 20px;
-  border-bottom: 1px solid #3c3c3c;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.memory-header h2 {
-  font-size: 16px;
-  color: #cccccc;
-  font-weight: 500;
-}
-
-.memory-controls {
-  display: flex;
-  gap: 5px;
-}
-
-.view-btn {
-  padding: 6px 12px;
-  background-color: #3c3c3c;
-  color: #cccccc;
-  border: none;
-  border-radius: 3px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
-}
-
-.view-btn:hover {
-  background-color: #505050;
-}
-
-.view-btn.active {
-  background-color: #0e639c;
-  color: white;
-}
-
-.memory-content {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.memory-empty {
-  padding: 40px 20px;
-  text-align: center;
-  color: #858585;
+  color: #aaaaaa;
 }
 
 .memory-empty p {
@@ -187,7 +64,7 @@
 
 .memory-hint {
   font-size: 12px !important;
-  color: #6a6a6a !important;
+  color: #cccccc !important;
   font-style: italic;
 }
 
@@ -199,12 +76,12 @@
 .memory-grid-header {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  background-color: #2d2d30;
+  background-color: #f0f0f0;
   padding: 10px 20px;
   font-weight: 600;
   font-size: 13px;
-  color: #9cdcfe;
-  border-bottom: 1px solid #3c3c3c;
+  color: #008080; /* Teal Header */
+  border-bottom: 1px solid #e0e0e0;
   position: sticky;
   top: 0;
   z-index: 1;
@@ -214,40 +91,41 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   padding: 10px 20px;
-  border-bottom: 1px solid #2d2d30;
+  border-bottom: 1px solid #f0f0f0;
   transition: background-color 0.2s ease;
 }
 
 .memory-row:hover {
-  background-color: #2d2d30;
+  background-color: #f7f7f7;
 }
 
 .memory-address {
-  color: #4ec9b0;
+  color: #ff8c00; /* Orange for Address */
   font-family: 'Consolas', 'Courier New', monospace;
   font-size: 13px;
   font-weight: 500;
 }
 
 .memory-value {
-  color: #ce9178;
+  color: #333333; /* Dark for Value */
   font-family: 'Consolas', 'Courier New', monospace;
   font-size: 13px;
 }
 
+/* Scrollbar styling for light theme */
 .memory-content::-webkit-scrollbar {
   width: 8px;
 }
 
 .memory-content::-webkit-scrollbar-track {
-  background: #1e1e1e;
+  background: #ffffff;
 }
 
 .memory-content::-webkit-scrollbar-thumb {
-  background: #3c3c3c;
+  background: #cccccc;
   border-radius: 4px;
 }
 
 .memory-content::-webkit-scrollbar-thumb:hover {
-  background: #505050;
+  background: #aaaaaa;
 }

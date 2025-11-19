@@ -1,0 +1,55 @@
+/**
+ * frontend/src/components/AIPromptBox.css
+ * Styles for the AI Assistant component.
+ */
+
+.ai-prompt-box {
+  border-top: 1px solid #e0e0e0;
+  padding: 15px 20px;
+  background-color: #f7f7f7; /* Soft background to distinguish it */
+  flex-shrink: 0; /* Prevents shrinking */
+}
+
+.ai-prompt-box .prompt-header h3 {
+  font-size: 14px;
+  color: #333333;
+  margin-bottom: 10px;
+}
+
+.ai-prompt-box .prompt-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cccccc;
+  border-radius: 4px;
+  resize: none;
+  font-family: inherit;
+  font-size: 13px;
+  background-color: #ffffff;
+  color: #333333;
+  transition: border-color 0.2s ease;
+}
+
+.ai-prompt-box .prompt-input:focus {
+  border-color: #008080; /* Teal focus highlight */
+  outline: none;
+}
+
+.ai-prompt-box .btn-generate {
+  margin-top: 10px;
+  width: 100%;
+  background-color: #008080; /* Teal Button */
+  color: white;
+  padding: 10px;
+  font-weight: 600;
+}
+
+.ai-prompt-box .btn-generate:hover:not(:disabled) {
+  background-color: #009999;
+}
+
+.ai-disclaimer {
+  font-size: 10px;
+  color: #999999;
+  margin-top: 10px;
+  text-align: center;
+}

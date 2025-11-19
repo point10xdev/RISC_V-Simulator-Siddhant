@@ -5,6 +5,8 @@
 const parser = require('../utils/parser');
 const decoder = require('../utils/decoder');
 const executor = require('../utils/executor');
+const { GoogleGenAI } = require('@google/genai'); // <--- UNCOMMENT AFTER INSTALLING @google/genai
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }); // <--- Uses key from .env
 
 // Internal state model (simple JS object array for compatibility with the original design)
 let simulatorState = {
@@ -65,7 +67,7 @@ function getSimInterface(state) {
   };
 }
 
-// --- Controller Methods ---
+// --- Controller Methods (Standard Simulation) ---
 
 exports.executeProgram = (req, res) => {
   try {
@@ -120,17 +122,14 @@ exports.stepExecution = (req, res) => {
     
     if (currentState) {
       // Load current state from request
-      // Note: The frontend sends a flat array for registers and a sparse array for memory
-      // We assume memory array is reconstructed to the full 1024 size here for simplicity.
       simulatorState.registers = currentState.registers;
       simulatorState.memory = currentState.memory; 
       simulatorState.pc = currentState.pc;
-      // simulatorState.instructions = currentState.instructions; // Instructions array is omitted by frontend on step request.
+      // simulatorState.instructions = currentState.instructions; // Instructions array is intentionally omitted by frontend
       simulatorState.halted = currentState.halted;
     }
     
     // Reparse only if instructions were not loaded from the internal cache or initial state
-    // This maintains the instruction list if it was already parsed in a previous call.
     if (!simulatorState.instructions.length) {
       simulatorState.instructions = parser.parse(code);
     }
@@ -185,4 +184,81 @@ exports.reset = (req, res) => {
       halted: simulatorState.halted
     }
   });
+};
+
+// --- NEW: AI Assembly Generation Endpoint ---
+exports.generateAssembly = async (req, res) => {
+  const { prompt, currentCode } = req.body;
+
+  if (!prompt) {
+    return res.status(400).json({ success: false, error: 'Prompt is required.' });
+  }
+
+  const systemInstruction = `You are an expert RISC-V 32-bit assembly language generator. Your task is to convert a user's plain English instruction into the most accurate, concise, and standard RISC-V assembly code (RV32I).
+
+GUIDELINES:
+1. Output ONLY the RISC-V assembly code and comments. Do not include any explanation, headers, or markdown formatting.
+2. Use standard register ABI names (a0-a7, t0-t6, s0-s11, ra, sp, gp, tp) or their numerical aliases (x0-x31).
+3. Always start your output with a comment including the user's prompt, e.g., "# User Prompt: [Prompt]".
+4. If the instruction is a simple operation, output only the relevant instruction(s).
+5. The user is using an interactive simulator. Do not include a final 'HLT' unless the user explicitly requests to stop the program.
+6. Only return the newly generated instructions, not the entire program.
+
+Example 1:
+User: add 5 and 10 and store the result in t3
+Output: # User Prompt: add 5 and 10 and store the result in t3
+ADDI t0, x0, 5
+ADDI t1, x0, 10
+ADD t3, t0, t1
+
+Example 2:
+User: Load 100 into register x5
+Output: # User Prompt: Load 100 into register x5
+ADDI x5, x0, 100
+`;
+
+  try {
+    // If API Key is missing, run mock code and warn the user.
+    if (!process.env.GEMINI_API_KEY) {
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate latency
+      
+      let mockAssembly = '';
+      if (prompt.toLowerCase().includes('add') && prompt.toLowerCase().includes('register')) {
+        mockAssembly = `# User Prompt: ${prompt}\n# WARNING: Using Mock Response (No API Key)\nADDI t0, x0, 10\nADDI t1, x0, 20\nADD t2, t0, t1 # Mock: Added 10 and 20\n`;
+      } else if (prompt.toLowerCase().includes('jump')) {
+        mockAssembly = `# User Prompt: ${prompt}\n# WARNING: Using Mock Response (No API Key)\nJAL ra, new_label\n`;
+      } else {
+        mockAssembly = `# User Prompt: ${prompt}\n# WARNING: Using Mock Response (No API Key)\nADDI t0, x0, 42 # Mock Default\n`;
+      }
+
+      return res.json({ success: true, assembly: mockAssembly });
+    }
+    
+    // --- Actual Gemini API Call ---
+    const model = 'gemini-2.5-flash';
+    const response = await ai.models.generateContent({
+      model,
+      contents: [{ role: 'user', parts: [{ text: `Current code context (for labels/variables):\n${currentCode}\n\nUser Instruction: ${prompt}` }] }],
+      config: {
+        systemInstruction: systemInstruction,
+        // Optional: Increase temperature for more creative responses, keep low for accuracy
+        temperature: 0.1 
+      },
+    });
+
+    const assemblyCode = response.text.trim();
+    
+    if (!assemblyCode) {
+        throw new Error('AI failed to generate assembly. Please try a different prompt.');
+    }
+
+    res.json({ success: true, assembly: assemblyCode });
+
+  } catch (error) {
+    console.error('AI Generation Error:', error);
+    res.status(500).json({
+      success: false,
+      error: `AI generation failed: ${error.message || 'An unknown error occurred on the server.'}. Ensure your GEMINI_API_KEY is set correctly in .env`
+    });
+  }
 };

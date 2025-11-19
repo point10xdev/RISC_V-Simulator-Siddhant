@@ -1,23 +1,23 @@
 .register-display {
-  background-color: #252526;
+  background-color: #ffffff;
   border-radius: 6px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  max-height: 600px; /* Add max height to container */
+  max-height: 600px;
 }
 
 .register-header {
-  background-color: #2d2d30;
+  background-color: #f0f0f0;
   padding: 12px 20px;
-  border-bottom: 1px solid #3c3c3c;
-  flex-shrink: 0; /* Prevent header from shrinking */
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
 }
 
 .register-header h2 {
   font-size: 16px;
-  color: #cccccc;
+  color: #333333;
   font-weight: 500;
 }
 
@@ -25,24 +25,24 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1px;
-  background-color: #3c3c3c;
+  background-color: #e0e0e0;
   padding: 1px;
-  overflow-y: auto; /* Enable vertical scrolling */
-  flex: 1; /* Take remaining space */
+  overflow-y: auto;
+  flex: 1;
 }
 
 .register-item {
-  background-color: #1e1e1e;
+  background-color: #ffffff;
   padding: 12px 15px;
   transition: background-color 0.2s ease;
 }
 
 .register-item.non-zero {
-  background-color: #2a2d2e;
+  background-color: #f7f7f7; /* Subtle highlight for changed registers */
 }
 
 .register-item:hover {
-  background-color: #2d2d30;
+  background-color: #f0f0f0;
 }
 
 .register-name {
@@ -54,13 +54,13 @@
 
 .reg-number {
   font-weight: 600;
-  color: #4ec9b0;
+  color: #008080; /* Teal for register number */
   font-size: 14px;
   min-width: 30px;
 }
 
 .reg-alias {
-  color: #858585;
+  color: #999999;
   font-size: 12px;
 }
 
@@ -71,37 +71,38 @@
 }
 
 .value-dec {
-  color: #ce9178;
+  color: #333333; /* Dark text for decimal value */
   font-size: 14px;
   font-weight: 500;
 }
 
 .value-hex {
-  color: #b5cea8;
+  color: #ff8c00; /* Orange for hex value */
   font-size: 12px;
   font-family: 'Consolas', 'Courier New', monospace;
 }
 
+/* Scrollbar styling for light theme */
 .register-grid::-webkit-scrollbar {
   width: 10px;
 }
 
 .register-grid::-webkit-scrollbar-track {
-  background: #1e1e1e;
+  background: #ffffff;
   border-radius: 5px;
 }
 
 .register-grid::-webkit-scrollbar-thumb {
-  background: #3c3c3c;
+  background: #cccccc;
   border-radius: 5px;
 }
 
 .register-grid::-webkit-scrollbar-thumb:hover {
-  background: #505050;
+  background: #aaaaaa;
 }
 
 /* Firefox scrollbar */
 .register-grid {
   scrollbar-width: thin;
-  scrollbar-color: #3c3c3c #1e1e1e;
+  scrollbar-color: #cccccc #ffffff;
 }
