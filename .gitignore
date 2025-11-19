@@ -1,0 +1,16 @@
+# Ignore node_modules in backend and frontend
+backend/node_modules/
+frontend/node_modules/
+
+# Ignore .env files in backend and frontend
+backend/.env
+frontend/.env
+
+# Optional: ignore logs
+*.log
+
+# Optional: ignore system files
+.DS_Store
+
+# Optional: ignore build files (React/Vite builds)
+frontend/dist/

@@ -1,0 +1,81 @@
+.editor-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #1e1e1e;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.editor-header {
+  background-color: #2d2d30;
+  padding: 12px 20px;
+  border-bottom: 1px solid #3c3c3c;
+}
+
+.editor-header h2 {
+  font-size: 16px;
+  color: #cccccc;
+  font-weight: 500;
+}
+
+.editor-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.line-numbers {
+  background-color: #1e1e1e;
+  color: #858585;
+  padding: 15px 10px;
+  text-align: right;
+  user-select: none;
+  border-right: 1px solid #3c3c3c;
+  min-width: 50px;
+}
+
+.line-numbers pre {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.code-editor {
+  flex: 1;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  border: none;
+  outline: none;
+  padding: 15px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: none;
+  overflow-y: auto;
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
+.code-editor::placeholder {
+  color: #6a6a6a;
+}
+
+.code-editor::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.code-editor::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.code-editor::-webkit-scrollbar-thumb {
+  background: #3c3c3c;
+  border-radius: 5px;
+}
+
+.code-editor::-webkit-scrollbar-thumb:hover {
+  background: #505050;
+}
